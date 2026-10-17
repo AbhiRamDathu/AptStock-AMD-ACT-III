@@ -2611,8 +2611,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 if stock_percentage <= 20:
                     # CRITICAL: Less than 25% stock
-                    priority = "ðŸ”´ HIGH"
-                    action = "ðŸš¨ URGENT: Restock Immediately"
+                    priority = "🔴 HIGH"
+                    action = "🚨 URGENT: Restock Immediately"
                     urgency = 100
                     reason = f"CRITICAL: Only {stock_percentage:.1f}% stock remaining ({current_stock:.0f} units)"
                     check_freq = "Daily"
@@ -2620,8 +2620,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 elif stock_percentage <= 33 and daily_sales_avg >= 5:
                     # HIGH: Low stock with fast-moving demand
-                    priority = "ðŸ”´ HIGH"
-                    action = "âš ï¸ High Priority: Plan Restock"
+                    priority = "🔴 HIGH"
+                    action = "⚠️ High Priority: Plan Restock"
                     urgency = 85
                     reason = f"Low stock ({stock_percentage:.1f}%) + High demand ({daily_sales_avg:.1f}/day)"
                     check_freq = "2-3x Weekly"
@@ -2629,8 +2629,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 elif stock_percentage <= 33:
                     # MEDIUM: Low stock but slow-moving
-                    priority = "ðŸŸ  MEDIUM"
-                    action = "ðŸ“‹ Medium: Schedule Restock"
+                    priority = "🟠  MEDIUM"
+                    action = "📋 Medium: Schedule Restock"
                     urgency = 60
                     reason = f"Low stock ({stock_percentage:.1f}%) but stable demand ({daily_sales_avg:.1f}/day)"
                     check_freq = "Weekly"
@@ -2638,8 +2638,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 elif stock_percentage <= 60 and daily_sales_avg >= 10:
                     # MEDIUM: High velocity items approaching reorder point
-                    priority = "ðŸŸ  MEDIUM"
-                    action = "ðŸ“… Plan Restock Cycle"
+                    priority = "🟠 MEDIUM"
+                    action = "📅 Plan Restock Cycle"
                     urgency = 50
                     reason = f"Adequate stock ({stock_percentage:.1f}%) but HIGH velocity ({daily_sales_avg:.1f}/day)"
                     check_freq = "Weekly"
@@ -2647,8 +2647,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 elif stock_percentage > 75 and daily_sales_avg >= 15:
                     # MEDIUM: Very high velocity - plan ahead despite good stock
-                    priority = "ðŸŸ  MEDIUM"
-                    action = "ðŸ“‹ Plan for Frequent Restocks"
+                    priority = "🟠  MEDIUM"
+                    action = "📋 Plan for Frequent Restocks"
                     urgency = 45
                     reason = f"Good stock ({stock_percentage:.1f}%) but VERY HIGH velocity ({daily_sales_avg:.1f}/day)"
                     check_freq = "2-3x Weekly"
@@ -2656,8 +2656,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 else:
                     # LOW: Monitor only
-                    priority = "ðŸŸ¢ LOW"
-                    action = "ðŸ‘ï¸ Monitor Stock (Stable but High Value)"
+                    priority = "🟢 LOW"
+                    action = "👁️ Monitor Stock (Stable but High Value)"
                     urgency = 20
                     reason = f"Healthy stock ({stock_percentage:.1f}%) with stable demand ({daily_sales_avg:.1f}/day)"
                     check_freq = "Bi-weekly"
@@ -2668,8 +2668,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 if daily_sales_avg >= 15:
                     # Very high demand - needs monitoring
-                    priority = "ðŸ”´ HIGH"
-                    action = "ðŸ”´ HIGH DEMAND ITEM"
+                    priority = "🔴 HIGH"
+                    action = "🔴 HIGH DEMAND ITEM"
                     urgency = 90
                     reason = f"High demand ({daily_sales_avg:.1f}/day) - no current stock data"
                     check_freq = "Daily"
@@ -2677,8 +2677,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 elif daily_sales_avg >= 8:
                     # High demand
-                    priority = "ðŸŸ  MEDIUM"
-                    action = "ðŸ“‹ Medium-Priority Item"
+                    priority = "🟠 MEDIUM"
+                    action = "📋 Medium-Priority Item"
                     urgency = 55
                     reason = f"Moderate-high demand ({daily_sales_avg:.1f}/day)"
                     check_freq = "Weekly"
@@ -2686,8 +2686,8 @@ def generate_actions_v2_smart(inventory, filter_from_date=None, filter_to_date=N
 
                 else:
                     # Low demand
-                    priority = "ðŸŸ¢ LOW"
-                    action = "ðŸ‘ï¸ Monitor (Stable but High Value)"
+                    priority = "🟢 LOW"
+                    action = "👁️ Monitor (Stable but High Value)"
                     urgency = 25
                     reason = f"Low demand ({daily_sales_avg:.1f}/day)"
                     check_freq = "Bi-weekly"
