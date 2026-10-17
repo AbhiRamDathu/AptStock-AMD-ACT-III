@@ -1,0 +1,276 @@
+import os
+
+os.environ["DEMO_MODE"] = "true"
+
+import pymongo.collection
+
+pymongo.collection.Collection.create_index = (
+    lambda self, *args, **kwargs: "isolated-test-index"
+)
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.routes import forecast_routes
+from app.middlewares.auth_middlewares import verify_token
+
+app = FastAPI()
+app.include_router(forecast_routes.router)
+
+app.dependency_overrides[verify_token] = lambda: {
+    "user_id": "aptstock-test",
+    "email": "demo@aptstock.ai",
+    "token_type": "access",
+    "sub": "aptstock-test",
+    "role": "demo",
+    "demo_mode": True,
+}
+
+
+def test_sample_route_preserves_cpu_recommendations_when_amd_fails(
+    monkeypatch, caplog
+):
+    import logging
+
+    caplog.set_level(logging.INFO)
+
+    def fail_amd(*args, **kwargs):
+        raise RuntimeError("Simulated AMD failure for regression test")
+
+    monkeypatch.setattr(
+        forecast_routes, "amd_inventory_batch", fail_amd
+    )
+    monkeypatch.setattr(
+        forecast_routes,
+        "get_amd_runtime_info",
+        lambda: {
+            "available": True,
+            "device": "TEST-ONLY-MOCK",
+            "pytorch": "test",
+            "rocm": "test",
+        },
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/forecast/upload-and-process-sample"
+        )
+
+    assert response.status_code == 200, response.text
+
+    body = response.json()
+    assert body["success"] is True
+    assert body["is_sample"] is True
+    assert isinstance(body.get("inventory"), list)
+    assert len(body["inventory"]) > 0
+
+    required_fields = {
+        "sku",
+        "item_name",
+        "safety_stock",
+        "safety_stock_7_days",
+        "recommended_stock_7_days",
+        "recommended_stock_15_days",
+        "reorder_point",
+    }
+
+    for item in body["inventory"]:
+        assert required_fields.issubset(item), (
+            f"Missing fields for SKU {item.get('sku')}"
+        )
+
+    assert (
+        "AMD shadow execution failed; retaining CPU recommendations"
+        in caplog.text
+    )
+
+    print("HTTP status:", response.status_code)
+    print("CPU inventory recommendations:", len(body["inventory"]))
+    print("AMD failure fallback: PASS")
+
+
+def test_sample_route_successful_amd_shadow_preserves_cpu_recommendations(
+    monkeypatch, caplog
+):
+    import logging
+    import pytest
+    import torch
+    import numpy as np
+    from amd_engine.amd_engine import amd_adapter
+    from amd_engine.amd_engine import shadow_inputs
+
+    if not (torch.cuda.is_available() and torch.version.hip):
+        pytest.skip("Requires an available AMD ROCm GPU")
+
+    if (
+        forecast_routes.build_demand_matrix is None
+        or forecast_routes.amd_inventory_batch is None
+    ):
+        pytest.fail("AMD shadow integration imports are unavailable")
+
+    caplog.set_level(logging.INFO)
+
+    # First run: establish the authoritative CPU baseline.
+    monkeypatch.setattr(
+        forecast_routes,
+        "get_amd_runtime_info",
+        lambda: {
+            "available": False,
+            "device": None,
+            "pytorch": torch.__version__,
+            "rocm": torch.version.hip,
+        },
+    )
+
+    with TestClient(app) as client:
+        baseline_response = client.post(
+            "/api/forecast/upload-and-process-sample"
+        )
+
+    assert baseline_response.status_code == 200, baseline_response.text
+    baseline = baseline_response.json()
+    assert baseline["success"] is True
+    assert baseline["inventory"]
+
+    # Second run: enable the actual GPU adapter.
+    monkeypatch.setattr(
+        forecast_routes,
+        "get_amd_runtime_info",
+        lambda: {
+            "available": True,
+            "device": torch.cuda.get_device_name(0),
+            "pytorch": torch.__version__,
+            "rocm": torch.version.hip,
+        },
+    )
+
+    captured = {}
+
+    # Capture the exact aligned inputs used by the route's AMD shadow call.
+    original_build_shadow_inputs = shadow_inputs.build_shadow_inputs
+
+    def capture_shadow_inputs(*args, **kwargs):
+        result = original_build_shadow_inputs(*args, **kwargs)
+        captured["shadow"] = result
+        return result
+
+    monkeypatch.setattr(
+        shadow_inputs,
+        "build_shadow_inputs",
+        capture_shadow_inputs,
+    )
+
+    def run_real_amd(*args, **kwargs):
+        result = amd_adapter.amd_inventory_batch(*args, **kwargs)
+        captured["result"] = result
+        return result
+
+    monkeypatch.setattr(
+        forecast_routes, "amd_inventory_batch", run_real_amd
+    )
+
+    with TestClient(app) as client:
+        amd_response = client.post(
+            "/api/forecast/upload-and-process-sample"
+        )
+
+    assert amd_response.status_code == 200, amd_response.text
+    body = amd_response.json()
+    assert body["success"] is True
+    assert body["inventory"]
+    assert "result" in captured, "Real AMD adapter was not executed"
+    assert "shadow" in captured, "AMD shadow inputs were not captured"
+
+    # Compare actual AMD inventory outputs to the independent CPU baseline.
+    cpu_by_key = {
+        (str(item["sku"]).strip().upper(),
+         str(item["item_name"]).strip()): item
+        for item in baseline["inventory"]
+    }
+
+    shadow = captured["shadow"]
+    gpu = captured["result"]
+
+    assert len(shadow["sku_order"]) == len(cpu_by_key)
+    assert gpu["safety_stock"].numel() == len(shadow["sku_order"])
+
+    field_mapping = {
+        "safety_stock": "safety_stock",
+        "safety_stock_7_days": "safety_stock_7_days",
+        "safety_stock_15_days": "safety_stock_15_days",
+        "recommended_stock_7_days": "recommended_stock_7_days",
+        "recommended_stock_15_days": "recommended_stock_15_days",
+        "reorder_point": "reorder_point",
+    }
+
+    for i, (sku, item_name) in enumerate(shadow["sku_order"]):
+        key = (str(sku).strip().upper(), str(item_name).strip())
+        assert key in cpu_by_key, f"Missing CPU SKU: {key}"
+
+        cpu_item = cpu_by_key[key]
+
+        for gpu_field, cpu_field in field_mapping.items():
+            gpu_value = gpu[gpu_field][i].detach().cpu().item()
+            cpu_value = float(cpu_item[cpu_field])
+
+            assert gpu_value == cpu_value, (
+                f"CPU/GPU mismatch for {key}, {gpu_field}: "
+                f"GPU={gpu_value}, CPU={cpu_value}"
+            )
+
+    print("Actual AMD outputs vs CPU inventory: PASS")
+
+    assert "AMD shadow batch completed" in caplog.text
+    assert (
+        "AMD shadow execution failed; retaining CPU recommendations"
+        not in caplog.text
+    )
+
+    # The route's public inventory recommendations must be unchanged.
+    def index_inventory(payload):
+        indexed = {}
+        for item in payload["inventory"]:
+            key = (str(item["sku"]), str(item["item_name"]))
+            assert key not in indexed, f"Duplicate inventory key: {key}"
+            indexed[key] = item
+        return indexed
+
+    cpu = index_inventory(baseline)
+    gpu_shadow = index_inventory(body)
+
+    assert cpu.keys() == gpu_shadow.keys()
+
+    fields = [
+        "safety_stock",
+        "safety_stock_7_days",
+        "safety_stock_15_days",
+        "recommended_stock_7_days",
+        "recommended_stock_15_days",
+        "reorder_point",
+    ]
+
+    for key in cpu:
+        for field in fields:
+            assert field in cpu[key] and field in gpu_shadow[key], (
+                f"Missing {field} for SKU/item {key}"
+            )
+            np.testing.assert_allclose(
+                float(gpu_shadow[key][field]),
+                float(cpu[key][field]),
+                rtol=0,
+                atol=0,
+                err_msg=f"CPU-authoritative result changed: {key}, {field}",
+            )
+
+    for name, value in captured["result"].items():
+        if name == "elapsed_seconds":
+            continue
+        assert torch.isfinite(value).all().item(), (
+            f"Non-finite AMD output: {name}"
+        )
+
+    print("CPU baseline inventory:", len(cpu))
+    print("AMD shadow inventory:", len(gpu_shadow))
+    print("Actual AMD adapter execution: PASS")
+    print("CPU-authoritative recommendations unchanged: PASS")
+    print("Successful AMD route integration: PASS")

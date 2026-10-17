@@ -1,0 +1,275 @@
+/* ===============================
+   AUTH CONTAINER
+================================ */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  /* AUTO RESPONSIVE PADDING */
+  padding: clamp(16px, 4vw, 64px);
+
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ===============================
+   AUTH CARD
+================================ */
+.auth-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  /* AUTO CARD PADDING */
+  padding: clamp(24px, 3vw, 40px);
+
+  max-width: 520px;
+  width: 100%;
+}
+
+/* ===============================
+   HEADER
+================================ */
+.auth-header {
+  text-align: center;
+  margin-bottom: clamp(20px, 3vw, 30px);
+}
+
+.auth-logo {
+  font-size: clamp(36px, 6vw, 48px);
+  margin-bottom: 10px;
+}
+
+.auth-header h1 {
+  color: #333;
+  font-size: clamp(20px, 3vw, 24px);
+  font-weight: 700;
+  margin: 10px 0;
+}
+
+.auth-subtitle {
+  color: #667eea;
+  font-size: clamp(13px, 2.5vw, 14px);
+  font-weight: 600;
+  margin: 5px 0;
+}
+
+.auth-description {
+  color: #999;
+  font-size: clamp(12px, 2.3vw, 13px);
+  margin-top: 8px;
+}
+
+/* ===============================
+   ALERT
+================================ */
+.alert {
+  padding: clamp(10px, 2.5vw, 12px) clamp(12px, 3vw, 16px);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alert-error {
+  background-color: #fee;
+  color: #c33;
+  border: 1px solid #fcc;
+}
+
+.alert-success {
+  background-color: #efe;
+  color: #3c3;
+  border: 1px solid #cfc;
+}
+
+/* ===============================
+   FORM
+================================ */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 2.5vw, 16px);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.required {
+  color: #e74c3c;
+}
+
+/* ===============================
+   INPUT
+================================ */
+.form-input {
+  padding: clamp(10px, 2.5vw, 12px);
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: clamp(13px, 2.5vw, 14px);
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-input.error {
+  border-color: #e74c3c;
+}
+
+.form-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  color: #999;
+}
+
+/* ===============================
+   PASSWORD FIELD
+================================ */
+.password-field {
+  position: relative;
+  display: flex;
+}
+
+.password-field .form-input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #667eea;
+}
+
+.password-toggle:hover {
+  opacity: 0.8;
+}
+
+.password-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.password-hint {
+  color: #999;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ===============================
+   ERROR MESSAGE
+================================ */
+.error-message {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ===============================
+   BUTTONS
+================================ */
+.btn {
+  padding: clamp(10px, 2.5vw, 12px) clamp(14px, 3vw, 16px);
+  border: none;
+  border-radius: 6px;
+  font-size: clamp(13px, 2.5vw, 14px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background-color: #667eea;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-large {
+  padding: clamp(12px, 3vw, 14px) clamp(18px, 4vw, 20px);
+  font-size: clamp(14px, 2.5vw, 15px);
+  width: 100%;
+}
+
+/* ===============================
+   SPINNER
+================================ */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===============================
+   FOOTER
+================================ */
+.auth-footer {
+  text-align: center;
+  margin-top: clamp(16px, 3vw, 20px);
+  padding-top: clamp(16px, 3vw, 20px);
+  border-top: 1px solid #eee;
+}
+
+.auth-footer p {
+  color: #666;
+  font-size: clamp(12px, 2.5vw, 13px);
+  margin: 0;
+}
+
+.auth-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.auth-link:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}

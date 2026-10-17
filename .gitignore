@@ -1,0 +1,58 @@
+﻿# Python environments
+backend/venv/
+.venv/
+venv/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+
+# Local backups and test artifacts
+backend/backups/
+backend/test_sales.csv
+backend/app/routes/ingest.py.backup
+backend/app/routes/New Text Document.txt
+backend/app/routes/Sales data files/
+
+# Exclude the separate AssemblyAI demo
+aptstock-assemblyai-demo/
+
+# Temporary source backups
+*.backup
+*.backup-*
+*.before-hardening
+*.bak
+
+# Local credentials and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local database and diagnostic artifacts
+backend/testConnection.py
+backend/test_db.py
+backend/test_email.py
+backend/test_smtp.py
+backend/scripts/
+frontend/public/upi-qr.jpg
+
+# Local Python virtual environments
+.venv*/
