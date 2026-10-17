@@ -1408,20 +1408,15 @@ def generate_forecasts_production_ready(
 
                 last_date = daily_sales['ds'].max()
 
-                full_future_forecast = forecast[forecast['ds'] > last_date].copy()
+                
+# Historical date filters have already been applied to df.
+# Keep the complete future horizon for the forecast chart.
+                full_future_forecast = forecast.loc[
+                    forecast["ds"] > last_date
+                ].copy()
+
                 filtered_future_forecast = full_future_forecast.copy()
 
-                if filter_from_date:
-                    filter_from_dt = pd.to_datetime(filter_from_date)
-                    filtered_future_forecast = filtered_future_forecast[
-                        filtered_future_forecast["ds"] >= filter_from_dt
-                    ]
-
-                if filter_to_date:
-                    filter_to_dt = pd.to_datetime(filter_to_date)
-                    filtered_future_forecast = filtered_future_forecast[
-                        filtered_future_forecast["ds"] <= filter_to_dt
-                    ]
 
                 if full_future_forecast.empty:
                     logger.warning(f"âš ï¸ {item_name}: No full future forecast generated")
