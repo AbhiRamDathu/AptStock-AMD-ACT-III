@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 
-const VOICE_SERVER_URL = "https://aptstock.onrender.com/api/voice";
+const VOICE_SERVER_URL = "https://aptstock-amd-act-iii.onrender.com/api/voice";
 const SAMPLE_RATE = 24000;
 
 export default function VoiceAgent({ dashboardData, store }) {
@@ -685,7 +685,7 @@ const flushPendingTools = (ws) => {
 
   try {
     const response = await fetch(
-      "https://aptstock.onrender.com/api/inventory/prepare-reorder",
+      "https://aptstock-amd-act-iii.onrender.com/api/inventory/prepare-reorder",
       {
         method: "POST",
         headers: {
@@ -796,7 +796,7 @@ const flushPendingTools = (ws) => {
     }
 
     const response = await fetch(
-      "https://aptstock.onrender.com/api/inventory/cancel-reorder",
+      "https://aptstock-amd-act-iii.onrender.com/api/inventory/cancel-reorder",
       {
         method: "POST",
         headers: {
@@ -843,7 +843,7 @@ const flushPendingTools = (ws) => {
 
                 try {
                   const response = await fetch(
-                    `https://aptstock.onrender.com/api/inventory/request-human-assistance`,
+                    `https://aptstock-amd-act-iii.onrender.com/api/inventory/request-human-assistance`,
                     {
                       method: "POST",
                       headers: {
