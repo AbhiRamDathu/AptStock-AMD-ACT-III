@@ -4,236 +4,308 @@
 **Category:** AI, Retail Analytics, Demand Forecasting, Inventory Optimization  
 **Hardware:** AMD Instinct MI300X VF  
 **Acceleration stack:** PyTorch + AMD ROCm  
-**Project status:** Working prototype with verified AMD GPU execution and CPU/GPU inventory parity testing
+**Project status:** Working prototype with verified AMD GPU execution, inventory parity testing, and end-to-end benchmarking
 
 ## 1. Overview
 
-AptStock is an AI-powered inventory intelligence platform designed to help multi-SKU stores make better replenishment decisions.
+AptStock is an AI-powered inventory intelligence platform designed to help multi-SKU retailers make better replenishment decisions.
 
-Multi-SKU stores often have sales histories but incomplete inventory records, making it difficult to anticipate demand, identify stock risks, and decide what to replenish.
+Retailers frequently have point-of-sale (POS) histories but incomplete or unreliable current-stock records. This makes it difficult to anticipate demand, identify potential stock risks, and determine appropriate replenishment quantities.
 
-AptStock turns point-of-sale (POS) data into demand forecasts, inventory recommendations, and actionable replenishment insights. Its goal is to help retailers reduce stockouts, avoid unnecessary overstock, and make more informed purchasing decisions.
+AptStock transforms retail sales data into product-level demand forecasts, inventory recommendations, safety-stock calculations, and actionable replenishment insights.
 
-The project combines demand forecasting, inventory mathematics, and GPU-accelerated batch computation to explore how AMD infrastructure can support scalable retail intelligence.
+The project combines demand forecasting, inventory mathematics, and batched GPU computation to investigate how AMD infrastructure can support scalable retail intelligence.
+
+Our objective is not simply to execute calculations on a GPU. It is to identify where AMD acceleration can provide measurable value while preserving recommendation correctness and application reliability.
 
 ## 2. The Problem
 
 Retailers face several interconnected challenges:
 
-- Demand changes across products and time.
-- POS exports frequently lack reliable current-stock information.
-- Manual inventory calculations become cumbersome as SKU counts grow.
+- Demand varies across products and time.
+- POS exports often lack dependable current-stock information.
+- Manual inventory analysis becomes cumbersome as product catalogs grow.
 - Replenishment decisions must account for demand variability and supplier lead times.
-- Incorrect recommendations can tie up working capital or cause lost sales.
+- Incorrect recommendations can increase carrying costs or contribute to lost sales.
 
-A useful retail intelligence system must do more than display charts. It must turn realistic sales data into explainable, operationally useful recommendations.
+A useful retail intelligence system must turn sales data into understandable, operationally useful decisions rather than merely displaying charts or generating predictions.
 
 ## 3. The Solution
 
-AptStock provides a forecasting and inventory-optimization workflow that connects retail sales data to replenishment decisions.
+AptStock provides a forecasting and inventory-optimization workflow that connects retail sales histories to replenishment decisions.
 
 ### Core capabilities
 
 - **POS data processing:** Normalize and process supported retail sales files.
-- **Demand forecasting:** Generate product-level forecasts using the forecasting pipeline.
+- **Demand forecasting:** Generate product-level forecasts through the existing forecasting pipeline.
 - **Inventory intelligence:** Calculate demand statistics, safety stock, reorder points, and recommended stock quantities.
 - **Forecast-based replenishment:** Use available forecast totals when valid, with a daily-average fallback.
 - **Priority-aware inventory planning:** Apply service-level Z-scores according to product priority.
-- **Operational resilience:** Retain the existing CPU recommendation path when optional AMD execution fails.
-- **AMD acceleration research:** Execute batched inventory calculations on AMD ROCm hardware and compare their outputs with the CPU reference.
+- **Operational resilience:** Preserve CPU recommendations if optional AMD execution fails.
+- **AMD acceleration:** Execute batched inventory calculations on AMD ROCm hardware and compare GPU outputs against CPU reference calculations.
 
-The objective is to turn retail data into practical decisions, not merely to produce predictions.
+The intended result is a practical decision-support workflow that helps retailers understand what to replenish and why.
 
-## 4. How the AMD Acceleration Works
+## 4. AMD ROCm Acceleration Architecture
 
-AptStock includes a PyTorch-based AMD/ROCm acceleration layer for batched inventory calculations.
+AptStock includes a PyTorch-based AMD acceleration layer for batched inventory calculations.
 
-The implementation uses the ROCm-compatible PyTorch `torch.cuda` interface to execute tensor operations on supported AMD GPUs.
+The implementation uses PyTorch's ROCm-compatible `torch.cuda` interface to execute tensor operations on supported AMD GPUs.
 
-The inventory batch receives aligned SKU demand histories, lead times, service-level Z-scores, and optional forecast inputs. It computes demand statistics, uncertainty, safety stock, horizon-specific recommendations, and reorder points.
+The inventory batch accepts aligned SKU demand histories, lead times, service-level Z-scores, and optional forecast inputs. It calculates demand statistics, uncertainty, safety stock, horizon-specific recommendations, and reorder points.
 
-### GPU computation
+### Computation performed on the GPU
 
-The batched implementation includes:
+1. Calculate daily average demand and sample standard deviation.
+2. Estimate demand and lead-time uncertainty.
+3. Apply service-level Z-scores and forecast-variability inputs.
+4. Apply safety-stock floors, caps, and integer rounding.
+5. Calculate seven-day and fifteen-day safety stock.
+6. Calculate seven-day and fifteen-day recommended stock quantities.
+7. Calculate reorder points.
+8. Validate outputs and measure GPU execution time.
 
-1. Daily mean demand and sample standard deviation.
-2. Demand variability and lead-time uncertainty.
-3. Priority-dependent safety-stock calculations.
-4. Safety-stock floors, caps, and integer rounding.
-5. Seven-day and fifteen-day recommended stock quantities.
-6. Reorder-point calculations.
-7. Numerical validation and elapsed GPU execution timing.
+### Application integration
 
-The AMD adapter is integrated with the sample forecast route through a shadow-execution path. The GPU outputs are evaluated for parity while the CPU remains authoritative for customer-facing recommendations.
+The AMD adapter is integrated into the sample forecasting route through a shadow-execution path.
 
-This separation protects existing application behavior while enabling real-hardware validation.
+During the verified integration test:
+
+- The application generated its CPU inventory recommendations.
+- The actual AMD adapter executed on the MI300X.
+- AMD inventory outputs were compared with the CPU baseline.
+- CPU-authoritative recommendations remained unchanged.
+
+This architecture allows hardware execution and parity validation without making unverified GPU outputs authoritative for customers.
+
+If optional AMD execution fails, the existing CPU recommendation path remains available.
 
 ## 5. Verified AMD Runtime
 
-The following environment was observed during AMD Cloud execution.
+The following environment was observed during the October 18, 2026 validation run.
 
 | Component | Observed value |
 |---|---|
 | GPU | AMD Instinct MI300X VF |
-| PyTorch | 2.14.0+rocm10.1.0 |
-| ROCm/HIP | 7.16.26385 |
+| PyTorch | `2.14.0+rocm10.1.0` |
+| ROCm/HIP | `7.16.26385` |
 | GPU availability | `True` |
-| Adapter execution | Passed in the route integration test |
+| Actual AMD adapter execution | Passed |
+| AMD inventory parity validation | Passed for tested cases |
 
-These values describe the tested environment and should not be interpreted as guarantees for every AMD GPU or ROCm installation.
+These values describe the tested environment. They are not guarantees for every AMD GPU, PyTorch build, or ROCm installation.
 
 ## 6. Verified Application Integration
 
-The October 18, 2026 validation run exercised the AptStock sample forecast route with real AMD adapter execution.
+The October 18, 2026 route integration test exercised the AptStock sample forecast endpoint with real AMD adapter execution.
 
-Reported results:
+### Observed results
 
-- AMD sample-route integration test: **1 passed**.
-- CPU baseline inventory: **37 SKUs**.
-- AMD shadow inventory: **37 SKUs**.
-- Actual AMD adapter execution: **PASS**.
-- CPU/AMD inventory-output comparison: **PASS**.
-- CPU-authoritative recommendations remained unchanged: **PASS**.
-- CPU fallback regression test: passed in a separate test invocation.
+| Validation | Result |
+|---|---|
+| CPU baseline inventory | 37 SKUs |
+| AMD shadow inventory | 37 SKUs |
+| Actual AMD adapter execution | PASS |
+| CPU/AMD inventory-output comparison | PASS |
+| CPU-authoritative recommendations unchanged | PASS |
+| Successful AMD route integration | PASS |
+| Route integration test | 1 passed |
 
-The route test verifies that AMD calculations can execute within the application without replacing the established CPU recommendations.
+A separate regression run also verified CPU fallback when AMD execution raises an exception.
 
-The CPU fallback is intentional: a failed optional GPU calculation must not prevent the application from producing its existing CPU-based inventory results.
+The engine parity suite completed with **10 tests passed** in the recorded run.
+
+These results establish successful execution and parity for the tested workloads. They do not establish that every application endpoint or every possible inventory input has been validated.
 
 ## 7. Benchmark Results
 
-AptStock maintains separate benchmarks because isolated tensor computation and production-style inventory processing have different performance characteristics.
+AptStock separates isolated batched computation from end-to-end inventory processing because their timing boundaries and performance characteristics differ.
 
-### A. Synthetic batched CPU-versus-AMD benchmark
+### A. Isolated batched CPU-versus-AMD benchmark
 
-The October 18 benchmark used a synthetic retail workload.
+The recorded isolated benchmark used a synthetic retail demand matrix with 500 SKUs and 180 historical days.
 
 | Parameter | Value |
 |---|---:|
 | SKUs | 500 |
 | Historical days | 180 |
-| Demand matrix values | 90,000 |
+| Demand records | 90,000 |
 | Forecast horizon | 15 days |
-| Measured repetitions | 5 |
+| Repetitions | 5 |
 
-Observed best-of-five timings:
+One recorded run reported:
 
 | Metric | CPU | AMD GPU |
 |---|---:|---:|
-| Execution time | 0.000111 s | 0.000037 s |
+| Best execution time | 0.000119 s | 0.000036 s |
 
-**Reported speedup: 2.98×**
+**Reported isolated benchmark speedup: 3.34×.**
 
-Maximum numerical differences reported by the benchmark:
+The run reported maximum absolute differences of `0.00024414` for forecast units and `0.00000381` for safety stock.
 
-- Forecast units: `0.00024414`
-- Safety stock: `0.00000381`
+This is an isolated benchmark result. It must not be interpreted as a 3.34× speedup for the complete application.
 
-These results apply to the synthetic batched workload and its particular timing boundaries. They do not establish a 2.98× speedup for the complete AptStock application.
+### B. End-to-end inventory benchmark
 
-### B. What the results mean
+The end-to-end benchmark evaluates CPU inventory calculation against AMD data transfer, GPU calculation, and result transfer.
 
-The two benchmarks measure different workloads and should not be combined into one performance claim.
+It was executed on the AMD Instinct MI300X VF using PyTorch with ROCm.
 
-The synthetic result demonstrates that batched tensor calculations executed successfully on the MI300X and were faster within that benchmark's timing boundary.
+**Recorded methodology:**
+- 180 historical days.
+- Two warm-up runs.
+- Seven measured repetitions.
+- Median execution time for the CPU and AMD paths.
+- Nine inventory outputs compared within defined numerical tolerances.
 
-Further optimization should focus on larger batches, minimizing transfers, and measuring the complete computation pipeline fairly.
+### Results from the October 18 evidence log
 
-**Further production-scale optimization is ongoing to fully leverage the hardware across all operational workloads.**
+| SKUs | CPU median | AMD end-to-end median | CPU/AMD speedup |
+|---:|---:|---:|---:|
+| 500 | 0.001258 s | 0.000289 s | 4.353× |
+| 2,000 | 0.001486 s | 0.001020 s | 1.457× |
+| 5,000 | 0.002570 s | 0.001778 s | 1.446× |
+
+A speedup above `1.0×` means the CPU execution time divided by the AMD end-to-end time is greater than one.
+
+### Interpretation
+
+The measurements show that performance depends on workload size:
+
+- **500 SKUs:** AMD is approximately **4.353× faster** for the measured workload.
+- **2,000 SKUs:** AMD is approximately **1.457× faster** for the measured workload.
+- **5,000 SKUs:** AMD is approximately **1.446× faster** for the measured workload.
+
+The end-to-end benchmark reported that all nine inventory outputs were within the defined numerical tolerances at every tested workload size.
+
+The results support a specific conclusion: AMD acceleration demonstrated a measurable advantage at the tested 5,000-SKU workload, while transfer and execution overhead outweighed that advantage at smaller tested sizes.
+
+They do not establish a universal GPU speedup or prove that the complete AptStock application is faster on AMD.
+
+### Optimization direction
+
+The next performance improvements should focus on:
+
+- Larger and more representative SKU batches.
+- Reducing host-to-device and device-to-host transfer overhead.
+- Reusing prepared tensors where appropriate.
+- Measuring data preparation, calculation, and result handling separately.
+- Repeated benchmarking under controlled conditions.
+- Identifying the workload size at which AMD execution becomes beneficial.
+
+The goal is to make acceleration useful in real retail operations, not merely to optimize a synthetic microbenchmark.
 
 ## 8. Inventory Correctness and Reliability
 
-Inventory recommendations affect purchasing decisions, so numerical consistency and failure handling are important.
+Inventory recommendations influence purchasing decisions, so numerical consistency and failure handling are essential.
 
 The AMD validation work includes:
 
-- Validating demand-matrix dimensions and values.
-- Rejecting invalid lead-time and service-level inputs.
-- Preserving SKU ordering across batch inputs and outputs.
-- Checking numerical parity against CPU reference calculations.
-- Testing safety-stock rounding, floors, caps, and recommendation formulas.
-- Verifying CPU fallback when AMD execution fails.
-- Keeping GPU shadow execution separate from authoritative recommendations.
+- Demand-matrix shape and value validation.
+- Validation of lead times and service-level Z-scores.
+- SKU ordering and input alignment checks.
+- CPU-reference comparisons for inventory calculations.
+- Safety-stock rounding, floors, caps, and recommendation-formula checks.
+- Numerical finiteness checks.
+- CPU fallback regression testing.
+- Separation of GPU shadow execution from authoritative recommendations.
 
-Passing the available tests establishes correctness only for the tested cases. Broader validation with representative retailer datasets remains necessary before treating the GPU implementation as production-authoritative.
+The parity suite and route integration test passed for the recorded test cases.
+
+Passing tests does not establish correctness for every retailer dataset, unusual demand distribution, missing-value pattern, or production scenario. Broader representative-data testing remains necessary.
 
 ## 9. Reproducibility
 
-Run the commands below from the project root in an environment with the required dependencies installed.
+Run these commands from the project root in the compatible AMD ROCm environment, with the required dependencies installed.
 
-### Production-style benchmark
-
-```bash
-PYTHONPATH="$PWD" .venv-linux/bin/python \
-  amd_engine/amd_engine/benchmark_production_inventory_scale.py \
-  --skus 500 2000 5000 \
-  --days 180 \
-  --warmups 2 \
-  --repeats 7
-```
-
-### AMD sample-route integration tests
+### Verify the AMD runtime
 
 ```bash
-PYTHONPATH="$PWD/backend:$PWD" .venv-linux/bin/python \
-  -m pytest -q tests/test_aptstock_sample_route.py
+"$VENV/bin/python" -c "import torch; print('GPU:', torch.cuda.get_device_name(0)); print('PyTorch:', torch.__version__); print('ROCm:', torch.version.hip); print('Available:', torch.cuda.is_available())"
 ```
 
-### AMD engine test suite
+Confirm that the reported GPU is an AMD device, ROCm/HIP is available, and `torch.cuda.is_available()` returns `True`.
+
+### Run the end-to-end inventory benchmark
 
 ```bash
-.venv-linux/bin/python -m pytest -q amd_engine
+PYTHONPATH="$PWD" "$VENV/bin/python" \
+  amd_engine/amd_engine/benchmark_inventory_end_to_end.py
 ```
 
-These commands assume the project environment contains the required packages, the relevant files are present, and the execution environment supports the selected tests. The real GPU integration test requires a compatible AMD ROCm runtime and available GPU.
+### Run the AMD engine parity tests
 
-Record the actual output and environment for every run. Historical test results should not be presented as results of a new invocation.
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH="$PWD" \
+  "$VENV/bin/python" -m pytest -q amd_engine/test_amd_parity.py
+```
+
+### Run the real AMD route integration test
+
+```bash
+PYTHONPATH="$PWD/backend:$PWD" \
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  "$VENV/bin/python" -m pytest -v -s \
+  tests/test_aptstock_sample_route.py::test_sample_route_successful_amd_shadow_preserves_cpu_recommendations
+```
+
+`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` avoids unrelated automatically discovered pytest plugins in the tested environment. Use a clean, compatible test environment if additional project tests require plugins.
+
+The route integration test requires the project's backend dependencies and an available compatible AMD ROCm GPU. Historical output is evidence of a previous run, not a substitute for executing the commands again.
 
 ## 10. Business Value
 
-AptStock addresses a recurring commercial problem: translating retail sales data into replenishment decisions.
+AptStock addresses a recurring retail challenge: translating sales histories into replenishment decisions.
 
-Its intended value includes:
+Its intended commercial benefits include:
 
-- Reducing the manual effort required to analyze large product catalogs.
-- Making demand and stock risks easier to identify.
+- Reducing manual effort when analyzing large product catalogs.
+- Making demand patterns and potential stock risks easier to identify.
 - Supporting more consistent replenishment decisions.
-- Improving the visibility of safety stock and lead-time requirements.
-- Providing a path to evaluating GPU acceleration for larger retail workloads.
+- Improving visibility into safety stock and supplier lead-time requirements.
+- Evaluating GPU acceleration where larger inventory workloads justify it.
 
-The next business-validation step is to measure forecast error, recommendation quality, stockout outcomes, excess inventory, and operating cost using representative retailer data.
+The next business-validation step is to measure forecast error, recommendation quality, stockout outcomes, excess inventory, and operating costs using representative retailer data.
 
-No quantified reduction in stockouts or excess inventory is claimed without supporting customer or historical-backtesting evidence.
+No quantified reduction in stockouts, inventory costs, or lost sales is claimed without supporting historical backtesting or customer evidence.
 
-## 11. Current Limitations and Next Steps
+## 11. Limitations and Next Steps
 
-AptStock is a working prototype with verified AMD execution, not a claim of fully optimized production GPU deployment.
+AptStock is a working prototype with verified AMD execution and end-to-end benchmark evidence. It is not a claim of fully optimized production GPU deployment.
 
 Remaining work includes:
 
-1. Measure the complete AMD execution pipeline, including data preparation and transfer costs.
-2. Optimize and benchmark larger SKU batches.
-3. Expand CPU/AMD parity coverage across representative retail data.
-4. Validate the complete POS upload, historical-chart, forecasting, and inventory workflow.
-5. Evaluate when AMD execution offers a measurable operational benefit.
-6. Consider making GPU results authoritative only after parity, reliability, and performance criteria have been satisfied.
+1. Benchmark larger SKU workloads and additional representative demand distributions.
+2. Reduce data-transfer overhead and improve batch execution efficiency.
+3. Expand CPU/AMD parity coverage across realistic retailer datasets.
+4. Validate the full POS upload, forecasting, and inventory workflow.
+5. Evaluate when GPU execution offers a measurable operational advantage.
+6. Establish repeatable performance thresholds before selecting CPU or AMD execution.
+7. Consider making GPU outputs authoritative only after correctness, reliability, and performance requirements are satisfied.
+8. Measure business outcomes using historical backtesting and retailer feedback.
 
-The existing CPU recommendation path remains the fallback and authoritative output while these steps are completed.
+The CPU recommendation path remains authoritative while this work continues.
 
 ## 12. Conclusion
 
 AptStock combines retail demand forecasting and inventory intelligence with a tested AMD ROCm acceleration path.
 
-The project has demonstrated real MI300X adapter execution inside the sample application, CPU/AMD inventory parity for the tested 37-SKU route workload, and a reproducible synthetic benchmark. It has also measured the performance limitations of the current production-style inventory workload.
+The project has demonstrated:
 
-Rather than treating GPU execution as a performance claim by itself, AptStock uses correctness checks, fallback behavior, and workload-specific benchmarking to determine where AMD acceleration can deliver practical value to retailers.
+- Actual AMD Instinct MI300X adapter execution.
+- Successful sample-route integration with 37 SKUs.
+- CPU/AMD inventory parity for the tested integration workload.
+- Ten passing AMD engine parity tests.
+- A measured isolated GPU benchmark advantage.
+- An end-to-end AMD performance advantage at 5,000 SKUs, alongside slower results at 500 and 2,000 SKUs.
 
-The goal is a reliable inventory intelligence system that connects AI forecasting and accelerated computation to useful commercial decisions.
+The central engineering goal is to combine numerical reliability, operational resilience, and workload-aware acceleration. By identifying where AMD computation delivers a measurable advantage, AptStock aims to connect accelerated retail analytics to useful commercial decisions.
 
 ---
 
 **Project:** AptStock  
-**Hardware validation:** AMD Instinct MI300X VF  
+**Track:** Reinvent Commerce  
+**Hardware validated:** AMD Instinct MI300X VF  
 **Framework:** PyTorch  
 **Acceleration platform:** AMD ROCm  
-**Track:** Reinvent Commerce
+**Benchmark date:** October 18, 2026
