@@ -18,7 +18,7 @@ The project combines demand forecasting, inventory mathematics, and batched GPU 
 
 Our objective is not simply to execute calculations on a GPU. It is to identify where AMD acceleration can provide measurable value while preserving recommendation correctness and application reliability.
 
-## 2. The Problem
+## 2. Retail inventory distortion is a $1.7T annual problem
 
 Retailers face several interconnected challenges:
 
