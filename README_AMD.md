@@ -8,9 +8,9 @@
 
 ## 1. Overview
 
-AptStock is an AI-powered inventory intelligence platform designed to help multi-SKU retailers make better replenishment decisions.
+AptStock is an AI-powered inventory intelligence platform designed to help multi-SKU stores make better replenishment decisions.
 
-Retailers frequently have point-of-sale (POS) histories but incomplete or unreliable current-stock records. This makes it difficult to anticipate demand, identify potential stock risks, and determine appropriate replenishment quantities.
+Multi-SKU stores frequently have point-of-sale (POS) histories but incomplete or unreliable current-stock records. This makes it difficult to anticipate demand, identify potential stock risks, and determine appropriate replenishment quantities.
 
 AptStock transforms retail sales data into product-level demand forecasts, inventory recommendations, safety-stock calculations, and actionable replenishment insights.
 
