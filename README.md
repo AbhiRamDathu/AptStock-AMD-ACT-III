@@ -210,6 +210,28 @@ The parity suite and route integration test passed for the recorded test cases.
 
 Passing tests does not establish correctness for every retailer dataset, unusual demand distribution, missing-value pattern, or production scenario. Broader representative-data testing remains necessary.
 
+## Judging Criteria Alignment
+
+AptStock connects a real retail replenishment workflow with measurable AMD inventory computation. Each capability maps to a judging dimension through a concrete implementation or user outcome.
+
+### 1. Application of Technology
+
+**AMD computation with correctness checks.** AptStock's PyTorch inventory engine uses AMD ROCm/HIP on AMD Instinct MI300X infrastructure for batched inventory calculations. The validation approach includes input checks, CPU-reference comparisons, and shadow execution. The established CPU path remains authoritative while AMD results are validated. Performance claims are scoped to the workload and configuration actually measured.
+
+### 2. Business Value
+
+**Turn POS history into replenishment decisions.** AptStock serves multi-SKU retailers—including supermarkets, convenience stores, pharmacies, and apparel shops. It turns sales history into product-level demand insights, stock-risk signals, safety-stock estimates, reorder triggers, and 7-day/15-day planning recommendations. When current-stock data is available, it can also help identify potential shortages and remaining stock coverage.
+
+### 3. Originality
+
+**Connect forecasting to inventory action.** AptStock combines demand forecasting, inventory mathematics, SKU prioritization, and conversational access in one retail workflow. It is designed for a common operational constraint: retailers may have sales history without reliable current-stock records. The system distinguishes calculated inventory outputs from conversational assistance instead of relying on a language model alone for inventory arithmetic.
+
+### 4. Presentation
+
+**Show the complete path from input to decision.** The demo and repository are intended to make the workflow inspectable: import POS data, review demand and inventory signals, prioritize SKUs, examine replenishment recommendations, and inspect AMD validation evidence. Benchmark results are reported with their workload scope and limitations, so judges can distinguish measured performance from future goals.
+
+**The central claim:** AptStock applies AMD computation where it has been measured, connects retail data to practical replenishment decisions, and makes validation boundaries explicit.
+
 ## 9. Reproducibility
 
 Run these commands from the project root in the compatible AMD ROCm environment, with the required dependencies installed.
